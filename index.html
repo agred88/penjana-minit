@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Penjana Surat Rasmi | Versi 2.7 (Auto Filename)</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <!-- Menggunakan JSDelivr untuk library DOCX yang stabil -->
+  <script src="https://cdn.jsdelivr.net/npm/docx@7.1.0/build/index.js"></script>
+
+  <!-- Font: Plus Jakarta Sans -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font: Inter (Fallback) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { 
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+          },
+          colors: { 
+            slate: { 850: '#151e2e', 900: '#0f172a' },
+            amber: { 450: '#f59e0b' } 
+          },
+          boxShadow: {
+            'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* --- CORE STYLES --- */
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #f8fafc;
+      color: #334155;
+      background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+      background-size: 24px 24px;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    
+    .dark body {
+      background-color: #0f172a;
+      color: #f1f5f9;
+      background-image: radial-gradient(#1e293b 1px, transparent 1px);
+    }
+
+    .hidden { display: none !important; }
+
+    /* --- COMPONENTS --- */
+    .nav-bar {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .dark .nav-bar {
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom: 1px solid #1e293b;
+    }
+
+    /* Cards */
+    .template-card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      cursor: pointer;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+    }
+    .dark .template-card { background: #1e293b; border-color: #334155; box-shadow: none; }
+    
+    .template-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    /* Badges */
+    .badge { position: absolute; top: 1rem; right: 1rem; font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .badge.red { background: #fee2e2; color: #991b1b; }
+    .badge.blue { background: #dbeafe; color: #1e40af; }
+    .badge.purple { background: #f3e8ff; color: #6b21a8; }
+    .badge.orange { background: #ffedd5; color: #9a3412; }
+    .badge.gray { background: #f1f5f9; color: #475569; }
+    
+    .dark .badge.red { background: #7f1d1d; color: #fca5a5; }
+    .dark .badge.blue { background: #1e3a8a; color: #bfdbfe; }
+    .dark .badge.purple { background: #581c87; color: #d8b4fe; }
+    .dark .badge.orange { background: #7c2d12; color: #fed7aa; }
+    .dark .badge.gray { background: #334155; color: #cbd5e1; }
+
+    /* Editor Layout */
+    .editor-layout { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    @media (min-width: 1024px) { .editor-layout { flex-direction: row; } }
+    
+    .sidebar-form { 
+      width: 100%; 
+      background: white; 
+      border-right: 1px solid #e2e8f0; 
+      display: flex; flex-direction: column; 
+      height: 100%; 
+      position: relative; 
+      z-index: 20; 
+      box-shadow: 4px 0 24px rgba(0,0,0,0.02);
+    }
+    .dark .sidebar-form { background: #0f172a; border-right-color: #1e293b; }
+    @media (min-width: 1024px) { .sidebar-form { width: 420px; flex-shrink: 0; } }
+
+    /* Input Cards */
+    .input-card { 
+      background: white; 
+      border: 1px solid #e2e8f0; 
+      border-radius: 12px; 
+      padding: 1.5rem; 
+      margin-bottom: 1.5rem; 
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+    .dark .input-card { background: #1e293b; border-color: #334155; }
+    
+    .form-label { display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .dark .form-label { color: #94a3b8; }
+    
+    .form-input, .form-select, .form-textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.75rem; font-size: 0.875rem; transition: all 0.2s; background-color: #fff; color: #1e293b; }
+    .dark .form-input, .dark .form-select, .dark .form-textarea { background-color: #334155; border-color: #475569; color: #f8fafc; }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+    .dark .form-input:focus, .dark .form-textarea:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2); }
+
+    /* Buttons */
+    .btn-primary { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; font-weight: 600; border-radius: 8px; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); }
+    .btn-primary:hover { box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3); transform: translateY(-1px); }
+    .btn-secondary { background: white; border: 1px solid #cbd5e1; color: #475569; font-weight: 600; border-radius: 8px; transition: all 0.2s; }
+    .btn-secondary:hover { background: #f8fafc; border-color: #94a3b8; color: #1e293b; }
+
+    /* Preview */
+    .preview-area { flex: 1; background-color: #f1f5f9; background-image: none; overflow-y: scroll; padding: 40px 20px; display: block; text-align: center; }
+    .dark .preview-area { background-color: #020617; }
+    
+    .a4-paper { width: 794px; min-height: 1123px; background: white; padding: 96px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); font-family: 'Arial', sans-serif; font-size: 11pt; line-height: 1.5; color: black; text-align: left; margin: 0 auto 40px auto; transform-origin: top center; }
+
+    /* Elements */
+    .minit-circle { width: 48px; height: 48px; border: 2px solid #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; margin: 0; }
+    .hanging-indent { padding-left: 2.2rem; text-indent: -2.2rem; }
+    .hanging-indent span.num { display: inline-block; width: 2.2rem; }
+    .table-layout { width: 100%; border-collapse: collapse; }
+    .table-layout td { vertical-align: top; padding-top: 5px; }
+    .sub-para { padding-left: 2.2rem; margin-bottom: 0.5rem; text-align: justify; }
+    .sub-label { font-weight: bold; margin-right: 5px; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .dark ::-webkit-scrollbar-thumb { background: #334155; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* --- PRINT STYLES --- */
+    @media print {
+      body * { visibility: hidden; }
+      .a4-paper, .a4-paper * { visibility: visible; }
+      .a4-paper { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 2.5cm; box-shadow: none; transform: none !important; }
+      #editorView { display: block !important; }
+      .sidebar-form { display: none !important; }
+      .preview-area { background: white; overflow: visible; }
+    }
+  </style>
+</head>
+<body class="transition-colors duration-300 antialiased selection:bg-blue-100 selection:text-blue-900">
+
+  <canvas id="circleCanvas" width="120" height="120" style="display:none;"></canvas>
+
+  <!-- Navbar -->
+  <nav class="nav-bar fixed w-full z-50 h-16 flex items-center justify-between px-6 shadow-sm">
+    <div class="flex items-center gap-3">
+      <!-- Standard Icon in Navbar -->
+      <div class="bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-2 rounded-lg shadow-lg shadow-blue-500/30">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold text-slate-800 dark:text-white leading-tight">Sistem Penjana Surat</h1>
+        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">JKDM Pulau Pinang</p>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-3">
+      <span class="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-100 dark:border-blue-800">
+        Versi 2.7 Pro
+      </span>
+      <button onclick="toggleTheme()" class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors focus:outline-none" title="Tukar Tema">
+        <svg id="sunIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+        <svg id="moonIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- VIEW 1: LANDING PAGE -->
+  <div id="landingView" class="min-h-screen flex flex-col items-center pt-24 px-4 pb-20 relative">
+    
+    <!-- Logo Kastam Di Muka Depan (Atas) -->
+    <div class="mb-6 flex flex-col items-center animate-fade-in-down">
+      <img src="https://i.imgur.com/94TlEvV.png" class="h-28 w-auto drop-shadow-md mb-4 hover:scale-105 transition-transform duration-500" alt="Logo Kastam Diraja Malaysia">
+    </div>
+
+    <div class="text-center max-w-2xl mx-auto mb-10">
+      <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-3 tracking-tight">Pilih Templat Dokumen</h2>
+      <p class="text-slate-500 dark:text-slate-400 text-base">Pilih jenis surat rasmi untuk memulakan proses penjanaan dokumen.</p>
+    </div>
+
+    <div class="w-full max-w-6xl mb-12">
+      <!-- Search Bar -->
+      <div class="relative max-w-md mx-auto mb-10">
+        <input type="text" id="searchInput" placeholder="Cari templat..." class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded-xl px-5 py-3.5 pl-11 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all" onkeyup="filterTemplates()">
+        <svg class="w-5 h-5 text-slate-400 absolute left-4 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+      </div>
+
+      <!-- Grid Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        <!-- Minit KU (Orange) -->
+        <div class="template-card group hover:border-orange-400" onclick="loadTemplate('minit_ku')" data-search="minit laporan kepada ku arahan">
+          <span class="badge orange">Arahan</span>
+          <div class="mt-4 mb-auto">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">Minit Laporan Kepada KU</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Arahan audit verifikasi pematuhan (AViP) kepada pegawai penyiasat.</p>
+          </div>
+          <button class="mt-6 w-full py-2.5 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-sm font-semibold rounded-lg group-hover:bg-amber-50 dark:group-hover:bg-amber-900/20 group-hover:text-amber-700 transition-colors">Pilih Templat</button>
+        </div>
+
+        <!-- BOD (Red) -->
+        <div class="template-card group hover:border-red-400" onclick="loadTemplate('bod')" data-search="minit notis bod standard">
+          <span class="badge red">Bahasa</span>
+          <div class="mt-4 mb-auto">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 group-hover:text-red-600 transition-colors">Minit Notis BOD</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Surat rasmi pengeluaran BOD di bawah Akta Cukai Jualan & Perkhidmatan 2018.</p>
+          </div>
+          <button class="mt-6 w-full py-2.5 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-sm font-semibold rounded-lg group-hover:bg-red-50 dark:group-hover:bg-red-900/20 group-hover:text-red-700 transition-colors">Pilih Templat</button>
+        </div>
+
+        <!-- Remisi (Blue) -->
+        <div class="template-card group hover:border-blue-400" onclick="loadTemplate('remisi')" data-search="minit remisi penalti kepada cdn">
+          <span class="badge blue">Kewangan</span>
+          <div class="mt-4 mb-auto">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 transition-colors">Minit Remisi Penalti</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Dokumen sokongan untuk kelulusan insentif remisi penalti.</p>
+          </div>
+          <button class="mt-6 w-full py-2.5 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-sm font-semibold rounded-lg group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 group-hover:text-blue-700 transition-colors">Pilih Templat</button>
+        </div>
+
+        <!-- 3 Serangkai (Purple) -->
+        <div class="template-card group hover:border-purple-400" onclick="loadTemplate('3serangkai')" data-search="minit tidak lawat premis">
+          <span class="badge purple">3 Serangkai</span>
+          <div class="mt-4 mb-auto">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 group-hover:text-purple-600 transition-colors">Minit Tidak Lawat Premis</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Set lengkap 3 minit (Arahan, Permohonan, Keputusan) audit tanpa lawatan.</p>
+          </div>
+          <button class="mt-6 w-full py-2.5 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-sm font-semibold rounded-lg group-hover:bg-purple-50 dark:group-hover:bg-purple-900/20 group-hover:text-purple-700 transition-colors">Pilih Templat</button>
+        </div>
+        
+        <!-- Custom Template (Gray) -->
+        <div class="template-card group border-dashed border-2 border-slate-300 hover:border-gray-400" onclick="loadTemplate('custom')" data-search="custom kosong bina sendiri">
+          <span class="badge gray">Tersuai</span>
+          <div class="mt-4 mb-auto">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 group-hover:text-slate-600 transition-colors">Templat Kosong</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Bina surat anda sendiri dengan tajuk, kandungan, dan tandatangan tersuai.</p>
+          </div>
+          <button class="mt-6 w-full py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-semibold rounded-lg group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors">Bina Sendiri</button>
+        </div>
+      </div>
+
+      <!-- Feature: Document History -->
+      <div class="mt-12 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-8">
+        <h2 class="text-base font-bold text-slate-800 dark:text-white mb-4 flex items-center uppercase tracking-wide">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 mr-3"></span>
+          Sejarah Dokumen Terakhir
+        </h2>
+        <div id="historyList" class="text-sm text-slate-500 dark:text-slate-400 divide-y divide-slate-100 dark:divide-slate-700">
+          <p class="italic py-2">Tiada sejarah dokumen ditemui.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ayat Hak Milik Di Muka Depan (Bawah) -->
+    <div class="fixed bottom-0 w-full bg-white/90 backdrop-blur border-t border-slate-200 dark:bg-slate-900/90 dark:border-slate-800 py-3 text-center z-40">
+      <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+        Hak milik Gobalan Virasinggam Bahagian Pematuhan JKDM Pulau Pinang 2026
+      </p>
+    </div>
+  </div>
+
+  <!-- VIEW 2: EDITOR PAGE -->
+  <div id="editorView" class="hidden editor-layout bg-white dark:bg-slate-900 pt-16">
+    <div class="sidebar-form shadow-xl z-20">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-800 z-10">
+        <button onclick="closeEditor()" class="flex items-center text-xs font-bold uppercase tracking-wide transition-colors text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">
+          <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg> Kembali
+        </button>
+        <span id="editorTitleContainer" class="px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-wide">
+           <span id="editorTitle"></span>
+        </span>
+      </div>
+      
+      <div id="autoSaveIndicator" class="px-6 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 text-center hidden border-b border-emerald-100 dark:border-emerald-900">
+        <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 mb-0.5"></span> Disimpan Automatik
+      </div>
+
+      <div class="form-scroll-area flex-1 overflow-y-auto p-6 bg-slate-50 dark:bg-slate-900/50" id="dynamicFormContainer"></div>
+      
+      <div class="p-5 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 grid grid-cols-2 gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <button onclick="printDocument()" class="btn-secondary w-full py-3 flex justify-center items-center gap-2">
+           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> 
+           <span>Cetak / PDF</span>
+        </button>
+        
+        <button id="downloadBtn" onclick="generateDocx()" class="btn-primary w-full py-3 flex justify-center items-center gap-2">
+           <svg id="downloadIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> 
+           <span id="downloadText">Simpan .DOCX</span>
+        </button>
+      </div>
+    </div>
+    <div class="preview-area" id="previewArea">
+      <div id="dynamicPreviewContainer" class="flex flex-col items-center"></div>
+    </div>
+  </div>
+
+  <script>
+    // --- CONFIG ---
+    const LOGO_URL = "https://i.imgur.com/94TlEvV.png"; 
+    const HAK_MILIK_TEXT = "Hak milik Gobalan Virasinggam Bahagian Pematuhan JKDM Pulau Pinang 2026";
+
+    // --- CHECK LIBRARY LOAD ---
+    window.addEventListener('load', function() {
+        renderHistory(); 
+        const txt = document.getElementById('downloadText');
+        if (!window.docx) console.log("Memuatkan library docx...");
+    });
+
+    // --- DARK MODE ---
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      updateThemeIcon(isDark);
+    }
+
+    function updateThemeIcon(isDark) {
+      const sun = document.getElementById('sunIcon');
+      const moon = document.getElementById('moonIcon');
+      if (isDark) {
+        sun.classList.remove('hidden');
+        moon.classList.add('hidden');
+      } else {
+        sun.classList.add('hidden');
+        moon.classList.remove('hidden');
+      }
+    }
+
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+        updateThemeIcon(true);
+      }
+    })();
+
+    function fitPaper() {
+      const container = document.getElementById('previewArea');
+      const papers = document.querySelectorAll('.a4-paper');
+      if (!container || papers.length === 0) return;
+      const containerWidth = container.clientWidth - 40; 
+      const originalWidth = 794; 
+      let scale = 1;
+      if (containerWidth < originalWidth) { scale = containerWidth / originalWidth; }
+      papers.forEach(paper => {
+        paper.style.transform = `scale(${scale})`;
+        const originalHeight = 1123; 
+        const heightDiff = originalHeight * (1 - scale);
+        paper.style.marginBottom = `-${heightDiff - 40}px`;
+      });
+    }
+    window.addEventListener('resize', fitPaper);
+
+    function formatRM(num) { return "RM" + parseFloat(num).toLocaleString('en-MY', { minimumFractionDigits: 2 }); }
+    function cleanName(name) { return name.replace(/^(TUAN|PUAN)\s+/i, ""); }
+    function getTarikhBM() { const b = ["JANUARI","FEBRUARI","MAC","APRIL","MEI","JUN","JULAI","OGOS","SEPTEMBER","OKTOBER","NOVEMBER","DISEMBER"]; const t = new Date(); return `${t.getDate()} ${b[t.getMonth()]} ${t.getFullYear()}`; }
+
+    // --- AUTO SAVE FUNCTIONS ---
+    function saveProgress() {
+       const data = getFormData();
+       if(Object.keys(data).length > 0) {
+         localStorage.setItem('autosave_' + currentKey, JSON.stringify(data));
+         const ind = document.getElementById('autoSaveIndicator');
+         ind.classList.remove('hidden');
+         setTimeout(() => ind.classList.add('hidden'), 2000);
+       }
+    }
+
+    function loadProgress() {
+       const saved = localStorage.getItem('autosave_' + currentKey);
+       if (saved) {
+         const data = JSON.parse(saved);
+         Object.keys(data).forEach(key => {
+           const el = document.getElementById(key);
+           if(el) el.value = data[key];
+         });
+         updatePreview();
+       }
+    }
+
+    // --- HISTORY FUNCTIONS ---
+    function addToHistory(ref) {
+       const hist = JSON.parse(localStorage.getItem('doc_history') || '[]');
+       const newEntry = { 
+         date: new Date().toLocaleDateString('ms-MY') + ' ' + new Date().toLocaleTimeString('ms-MY', {hour: '2-digit', minute:'2-digit'}), 
+         type: TEMPLATES[currentKey].title, 
+         ref: ref || 'Tiada Rujukan' 
+       };
+       hist.unshift(newEntry);
+       if(hist.length > 5) hist.pop(); // Keep last 5
+       localStorage.setItem('doc_history', JSON.stringify(hist));
+       renderHistory();
+    }
+
+    function renderHistory() {
+       const hist = JSON.parse(localStorage.getItem('doc_history') || '[]');
+       const container = document.getElementById('historyList');
+       if(hist.length === 0) {
+         container.innerHTML = '<p class="italic py-2">Tiada sejarah dokumen ditemui.</p>';
+         return;
+       }
+       container.innerHTML = hist.map(h => `
+         <div class="flex justify-between items-center py-3">
+           <div>
+             <div class="font-bold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wide">${h.type}</div>
+             <div class="text-xs text-slate-400 font-mono mt-0.5">${h.ref}</div>
+           </div>
+           <div class="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded uppercase">${h.date}</div>
+         </div>
+       `).join('');
+    }
+
+    // --- PRINT FUNCTION ---
+    function printDocument() {
+      window.print();
+    }
+
+    // --- TEMPLATES ---
+    const TEMPLATES = {
+      'custom': {
+        title: 'Templat Kosong (Custom)',
+        theme: 'gray',
+        renderForm: () => `
+          <div class="input-card border-l-4 border-l-gray-500">
+            <div class="mb-4 pb-2 border-b border-gray-100 dark:border-slate-700 font-bold text-gray-800 dark:text-white uppercase text-xs tracking-wider">Kepala Surat</div>
+            <div class="mb-4"><label class="form-label">No. Rujukan</label><input type="text" id="noRujukan" class="form-input" value="(KE.PB(176)462/129-10/2025/CUSTOM)" oninput="updatePreview()"></div>
+            <div class="mb-4"><label class="form-label">Tarikh</label><input type="text" id="tarikhSurat" class="form-input" value="${getTarikhBM()}" oninput="updatePreview()"></div>
+          </div>
+          <div class="input-card border-l-4 border-l-gray-500">
+            <div class="mb-4 pb-2 border-b border-gray-100 dark:border-slate-700 font-bold text-gray-800 dark:text-white uppercase text-xs tracking-wider">Kandungan</div>
+            <div class="mb-4"><label class="form-label">Kepada</label><textarea id="kepada" class="form-textarea" rows="2" oninput="updatePreview()">PENGARAH SYARIKAT CONTOH SDN BHD</textarea></div>
+            <div class="mb-4"><label class="form-label">Perkara / Tajuk</label><input type="text" id="tajuk" class="form-input uppercase" value="PERKARA: PEMERIKSAAN AUDIT" oninput="updatePreview()"></div>
+            <div class="mb-4"><label class="form-label">Isi Kandungan</label><textarea id="kandungan" class="form-textarea" rows="6" oninput="updatePreview()">Dengan segala hormatnya perkara di atas adalah dirujuk.\n\n2.  Sila ambil maklum bahawa...</textarea></div>
+          </div>
+          <div class="input-card border-l-4 border-l-gray-500">
+            <div class="mb-4 pb-2 border-b border-gray-100 dark:border-slate-700 font-bold text-gray-800 dark:text-white uppercase text-xs tracking-wider">Tandatangan</div>
+            <div class="mb-4"><label class="form-label">Nama Pegawai</label><input type="text" id="namaPegawai" class="form-input uppercase" value="NAMA PEGAWAI" oninput="updatePreview()"></div>
+            <div class="mb-4"><label class="form-label">Jawatan</label><input type="text" id="jawatanPegawai" class="form-input" value="Penolong Pengarah Kastam" oninput="updatePreview()"></div>
+          </div>`,
+        renderPreview: (data) => `
+          <div class="a4-paper">
+            <div class="text-right text-sm mb-8 leading-tight">
+               <div>Rujukan Kami: ${data.noRujukan}</div>
+               <div>Tarikh: ${data.tarikhSurat}</div>
+            </div>
+            <div class="mb-6 font-bold uppercase w-2/3">${data.kepada.replace(/\n/g, '<br>')}</div>
+            <div class="mb-6">Tuan,</div>
+            <div class="mb-6 font-bold uppercase underline text-justify">${data.tajuk}</div>
+            <div class="text-justify mb-8 whitespace-pre-wrap font-sans">${data.kandungan}</div>
+            <div class="mb-8">Sekian, terima kasih.</div>
+            <div class="mb-8 font-bold text-sm uppercase">"MALAYSIA MADANI"<br>"BERKHIDMAT UNTUK NEGARA"</div>
+            <div>Saya yang menjalankan amanah,</div>
+            <br><br>
+            <div class="font-bold uppercase">(${data.namaPegawai})</div>
+            <div>${data.jawatanPegawai}</div>
+          </div>`
+      },
+      'minit_ku': {
+        title: 'Minit Laporan Kepada KU',
+        theme: 'orange',
+        renderForm: () => `
+          <div class="input-card border-l-4 border-l-orange-500">
+            <div class="mb-4 pb-2 border-b border-orange-100 dark:border-slate-700 font-bold text-orange-800 dark:text-white uppercase text-xs tracking-wider">Maklumat Fail</div>
+            <div class="mb-4"><label class="form-label">No. Rujukan Fail</label><input type="text" id="noRujukan" class="form-input" value="(KE.PB(176)462/129-10/2025/996)" oninput="updatePreview()"></div>
+            <div class="mb-4"><label class="form-label">Nombor Minit</label><input type="number" id="minitNo" class="form-input" value="1" oninput="updatePreview()"></div>
+          </div>
+          <div class="input-card border-l-4 border-l-orange-500">
+            <div class="mb-4 pb-2 border-b border-orange-100 dark:border-slate-700 font-bold text-orange-800 dark:text-white uppercase text-xs tracking-wider">Butiran Sasaran</div>
+            <div class="mb-4"><label class="form-label">Syarikat</label><input type="text" id="namaSyarikat" class="form-input uppercase" value="TECHMENT CONSULTANCY SDN BHD" oninput="updatePreview()"></div>
+            <div class="mb-4"><label class="form-label">Akta</label><select id="akta" class="form-select" onchange="updatePreview()"><option value="Akta Cukai Perkhidmatan 2018">Akta Cukai Perkhidmatan 2018</option><option value="Akta Cukai Jualan 2018">Akta Cukai Jualan 2018</option></select></div>
+          </div>
+          <div class="input-card border-l-4 border-l-orange-500">
+            <div class="mb-4 pb-2 border-b border-orange-100 dark:border-slate-700 font-bold text-orange-800 dark:text-white uppercase text-xs tracking-wider">Pegawai</div>
+            <div class="mb-4"><label class="form-label">Kepada (Pegawai)</label><input type="text" id="namaPegawai" class="form-input uppercase" value="GOBALAN A/L VIRASINGGAM" oninput="updatePreview()"></div>
+            <div class="mb-4"><label class="form-label">Jawatan Pegawai</label><input type="text" id="jawatanPegawai" class="form-input" value="Penolong Pengarah Kastam" oninput="updatePreview()"></div>
+            <div class="mb-4"><label class="form-label">Daripada (Pelulus)</label><input type="text" id="namaPelulus" class="form-input uppercase" value="NORHASHIKIN BINTI MD YUSOF" oninput="updatePreview()"></div>
+            <div class="mb-4"><label class="form-label">Jawatan Pelulus</label><input type="text" id="jawatanPelulus" class="form-input" value="Penolong Kanan Pengarah Kastam II" oninput="updatePreview()"></div>
+          </div>`,
+        renderPreview: (data) => `
+          <div class="a4-paper">
+            <div class="text-center font-bold mb-8 text-sm uppercase">${data.noRujukan}</div>
+            <table class="table-layout">
+              <tr>
+                <td style="width:55px"><div class="minit-circle">${data.minitNo}</div></td>
+                <td style="width:20px"></td>
+                <td>
+                  <div class="font-bold mb-1">TUAN ${cleanName(data.namaPegawai)}</div>
+                  <div>${data.jawatanPegawai}</div>
+                  <div>Cawangan Audit Import & SST, Pulau Pinang.</div>
+                  <div class="h-6"></div>
+                  <p class="mb-4 text-justify">Entiti Perniagaan (EP) <span class="font-bold">${data.namaSyarikat}</span> adalah dirujuk.</p>
+                  <div class="hanging-indent text-justify mb-4">
+                    <span class="num font-bold">2.</span>Sila jalankan audit verifikasi pematuhan (AViP) ke atas syarikat ini bagi mengesan sebarang ketidakpatuhan dan memungut semula duti/cukai yang terkurang bayar selaras dengan kehendak <span class="font-bold">${data.akta}</span> serta Peraturan-peraturan dan syarat-syarat yang ditetapkan oleh jabatan.
+                  </div>
+                  <div class="hanging-indent text-justify mb-6">
+                    <span class="num font-bold">3.</span>Laporan audit yang disediakan mestilah berpandukan PETUa 13. Fail dimajukan untuk tindakan puan seterusnya.
+                  </div>
+                  <p class="mb-8">Sekian, terima kasih.</p>
+                  <div class="mb-1">..................................................</div>
+                  <div class="font-bold uppercase">${data.namaPelulus}</div>
+                  <div>${data.jawatanPelulus}</div>
+                  <div>Cawangan Audit Import & SST,</div>
+                  <div>Bahagian Pematuhan, Pulau Pinang.</div>
+                  <div class="font-bold uppercase mt-4">${getTarikhBM()}</div>
+                </td>
+              </tr>
+            </table>
+          </div>`
+      },
+      'bod': {
+        title: 'Minit Notis BOD',
+        theme: 'red',
+        renderForm: () => `
+          <div class="input-card border-l-4 border-l-red-500">
+            <div class="mb-4 pb-2 border-b border-red-100 dark:border-slate-700 font-bold text-red-800 dark:text-white uppercase text-xs tracking-wider">Maklumat Fail</div>
+            <div class="mb-4"><label class="form-label">No. Rujukan Fail</label><input type="text" id="noRujukan" class="form-input" value="(KE.PB(176)462/129-10/2025/996)" oninput="updatePreview()"></div>
+            <div class="mb-4"><label class="form-label">Nombor Minit</label><input type="number" id="minitNo" class="form-input" value="6" oninput="updatePreview()"></div>
+          </div>
+          <div class="input-card border-l-4 border-l-red-500">
+            <div class="mb-4 pb-2 border-b border-red-100 dark:border-slate-700 font-bold text-red-800 dark:text-white uppercase text-xs tracking-wider">Maklumat Sasaran</div>
+            <div class="mb-4"><label class="form-label">Nama Syarikat</label><input type="text" id="namaSyarikat" class="form-input uppercase" placeholder="CONTOH SDN BHD" oninput="updatePreview()"></div>
+            <div class="mb-4"><label class="form-label">Peruntukan Akta</label><select id="akta" class="form-select" onchange="updatePreview()"><option value="Seksyen 4(2) Akta Cukai Jualan 2018 dan tuntutan dibuat di bawah Seksyen 38(1) yang sama">Akta Cukai Jualan 2018 (Sek 4(2) & 38(1))</option><option value="Seksyen 3(2) Akta Cukai Perkhidmatan 2018 dan tuntutan dibuat di bawah Seksyen 37(1) yang sama">Akta Cukai Perkhidmatan 2018 (Sek 3(2) & 37(1))</option></select></div>
+          </div>`,
+        renderPreview: (data) => `
+          <div class="a4-paper">
+            <div class="text-center font-bold mb-8 text-sm uppercase">${data.noRujukan}</div>
+            <table class="table-layout">
+              <tr><td style="width:55px"><div class="minit-circle">${data.minitNo}</div></td><td style="width:20px"></td><td><div class="font-bold">Urus setia</div><div>Cawangan Audit Import & SST</div><div>JKDM Pulau Pinang</div></td></tr>
+              <tr><td colspan="3" class="h-6"></td></tr>
+              <tr><td></td><td></td><td><p class="mb-4">Minit bilangan (${parseInt(data.minitNo)-1||1}) dirujuk.</p></td></tr>
+              <tr><td></td><td></td><td><div class="hanging-indent text-justify"><span class="num font-bold">2.</span>BOD secara sukarela telah dikeluarkan ke atas audit <strong>${data.namaSyarikat}</strong> di bawah peruntukan <strong>${data.akta}</strong>. Lampiran SMK ETOS disertakan untuk tindakan selanjutnya.</div></td></tr>
+              <tr><td colspan="3" class="h-4"></td></tr>
+              <tr><td></td><td></td><td><div class="hanging-indent text-justify"><span class="num font-bold">3.</span>Sehubungan dengan itu, dimohon agar pihak tuan/puan untuk mengambil tindakan selanjutnya dalam pengeluaran BOD tersebut. Fail dimajukan untuk tindakan selanjutnya.</div></td></tr>
+              <tr><td colspan="3" class="h-4"></td></tr>
+              <tr><td></td><td></td><td><p class="mb-12">Sekian, terima kasih.</p><div class="uppercase mb-1 font-bold">(GOBALAN A/L VIRASINGGAM)</div><div>PENOLONG PENGARAH KASTAM</div><div>Cawangan Audit Import & SST</div><div class="mb-4">JKDM Pulau Pinang</div><div class="font-bold uppercase">${getTarikhBM()}</div></td></tr>
+            </table>
+          </div>`
+      },
+      'remisi': {
+        title: 'Minit Remisi',
+        theme: 'blue',
+        renderForm: () => `
+          <div class="input-card border-l-4 border-l-blue-500">
+            <div class="mb-4 pb-2 border-b border-blue-100 dark:border-slate-700 font-bold text-blue-800 dark:text-white uppercase text-xs tracking-wider">Maklumat Fail</div>
+            <div class="mb-4"><label class="form-label">No. Rujukan Fail</label><input id="noRujukan" class="form-input" value="KE.PB(176)462/129-10/2025/1356" oninput="updatePreview()"></div>
+            <div class="grid grid-cols-2 gap-4">
+              <div><label class="form-label">Minit No.</label><input type="number" id="minitNo" class="form-input" value="5" oninput="updatePreview()"></div>
+              <div><label class="form-label">Bil. Penyata</label><input type="number" id="bilPenyata" class="form-input" value="9" oninput="updatePreview()"></div>
+            </div>
+            <div class="mt-4"><label class="form-label">Pegawai Pengesah</label><input id="namaPegawai" class="form-input uppercase" value="NORHASHIKIN BINTI MD YUSOF" oninput="updatePreview()"></div>
+            <div class="mt-4"><label class="form-label">Jawatan</label><input id="jawatanPegawai" class="form-input" value="Penolong Kanan Pengarah Kastam II" oninput="updatePreview()"></div>
+          </div>
+          <div class="input-card border-l-4 border-l-blue-500">
+            <div class="mb-4 pb-2 border-b border-blue-100 dark:border-slate-700 font-bold text-blue-800 dark:text-white uppercase text-xs tracking-wider">Butiran Kewangan</div>
+            <div class="mb-4"><label class="form-label">Nama Syarikat</label><input id="namaSyarikat" class="form-input uppercase" value="MUSIC AVENUE ACADEMY SDN BHD" oninput="updatePreview()"></div>
+            <div class="mb-4"><label class="form-label">Tempoh</label><input id="tempohPenyata" class="form-input" value="Mac-April 2024 hingga Jul-Ogos 2025" oninput="updatePreview()"></div>
+            <div class="mb-4"><label class="form-label">Tarikh Bayaran</label><input id="tarikhBayaran" class="form-input" value="04.02.2026" oninput="updatePreview()"></div>
+            <div class="grid grid-cols-2 gap-4">
+              <div><label class="form-label">Cukai (RM)</label><input type="number" id="jumCukai" class="form-input" value="46049.68" oninput="updatePreview()"></div>
+              <div><label class="form-label">Penalti (RM)</label><input type="number" id="jumPenalti" class="form-input" value="18419.50" oninput="updatePreview()"></div>
+            </div>
+          </div>`,
+        renderPreview: (data) => `
+          <div class="a4-paper">
+            <div class="text-center font-bold mb-6 text-sm uppercase">${data.noRujukan}</div>
+            <table class="table-layout">
+              <tr>
+                <td style="width: 60px;"><div class="minit-circle">${data.minitNo}</div></td>
+                <td style="width: 20px;"></td>
+                <td class="pt-8">
+                  <div class="font-bold">${data.namaPegawai}</div>
+                  <div>${data.jawatanPegawai}</div>
+                  <div>Cawangan Audit Import & SST, Pulau Pinang</div>
+                </td>
+              </tr>
+              <tr><td colspan="3" class="h-6"></td></tr>
+              <tr><td></td><td></td><td>
+                <div class="text-justify mb-4">Syarikat <span class="font-bold">${data.namaSyarikat}</span> telah membuat pindaan penyata SST-02 melalui <span class="italic">Supplementary Tax Return</span> dan bayaran pada ${data.tarikhBayaran} melibatkan ${data.bilPenyata} penyata dalam tempoh ${data.tempohPenyata} dengan jumlah cukai perkhidmatan sebanyak <span class="font-bold">${formatRM(data.jumCukai)}</span>. Bayaran selesai tanpa melibatkan penalti sebanyak <span class="font-bold">${formatRM(data.jumPenalti)}</span>.</div>
+                <div class="hanging-indent text-justify mb-6"><span class="num font-bold">2.</span>Berdasarkan Surat Pekeliling Bahagian Pengurusan Pematuhan Bil.1/2024: Kaedah Pelaksanaan Insentif Audit Verifikasi Pematuhan (AViP) bertarikh 21.05.2024, EP mematuhi Para 2.1.3, 2.1.4 dan 2.23 seperti berikut:</div>
+                
+                <div class="sub-para text-justify"><span class="sub-label">Para 2.1.3:</span> EP telah membuat pindaan ke atas penyata/menghantar penyata supplementary mengikut amaun yang telah dinyatakan di dalam Surat Layak VD dan</div>
+                <div class="sub-para text-justify"><span class="sub-label">Para 2.1.4:</span> EP telah membuat pembayaran penuh cukai seperti di dalam Surat Layak VD dalam tempoh 6 bulan atau 12 bulan</div>
+                <div class="sub-para text-justify"><span class="sub-label">Para 2.23:</span> Kategori 1: Remisi penalti 100% diberikan kepada EP yang membuat pembayaran penuh cukai dalam tempoh 6 bulan dari tarikh pindaan penyata/penghantaran penyata supplementary</div>
+
+                <div class="hanging-indent text-justify mt-4"><span class="num font-bold">3.</span>Syarikat telah memenuhi semua kriteria dan disyorkan layak mendapat insentif remisi penalti 100%.</div>
+                <div class="hanging-indent text-justify"><span class="num font-bold">4.</span>Dimajukan Borang BRP 1 dan dokumen sokongan berkaitan untuk arahan tuan selanjutnya.</div>
+                <p class="mb-12 mt-6">Sekian, terima kasih.</p>
+                <div class="mb-1">..................................................</div><div class="font-bold uppercase">( GOBALAN A/L VIRASINGGAM )</div><div>Penolong Pengarah Kastam</div><div>Cawangan Audit Import & SST</div><div>Bahagian Pematuhan</div><div>Pulau Pinang</div>
+                <div class="font-bold uppercase mt-4">${getTarikhBM()}</div>
+              </td></tr>
+            </table>
+          </div>`
+      },
+      '3serangkai': {
+        title: 'Minit 3 Serangkai',
+        theme: 'purple',
+        renderForm: () => `
+          <div class="input-card border-l-4 border-l-purple-500">
+            <div class="mb-4 pb-2 border-b border-purple-100 dark:border-slate-700 font-bold text-purple-800 dark:text-white uppercase text-xs tracking-wider">Maklumat Fail</div>
+            <div class="mb-4"><label class="form-label">No. Rujukan Fail</label><input id="noRujukan" class="form-input" value="KE.PB(176)462/129-10/2025/996" oninput="updatePreview()"></div>
+            <div class="mb-4"><label class="form-label">Syarikat</label><input id="namaSyarikat" class="form-input uppercase" value="PARROTSIGHT PRODUCTION SDN BHD" oninput="updatePreview()"></div>
+            <div class="mb-4"><label class="form-label">Alamat</label><textarea id="alamat" class="form-textarea" rows="2" oninput="updatePreview()">1-4-8, I-Avenue, Medan Kampung Relau 1, 11900 Batu Maung Pulau Pinang.</textarea></div>
+            <div class="grid grid-cols-2 gap-4"><div><label class="form-label">Tempoh Mula</label><input id="tMula" class="form-input" value="Feb 2025" oninput="updatePreview()"></div><div><label class="form-label">Tempoh Tamat</label><input id="tTamat" class="form-input" value="Mei 2025" oninput="updatePreview()"></div></div>
+          </div>
+          <div class="input-card border-l-4 border-l-purple-500">
+            <div class="mb-4 pb-2 border-b border-purple-100 dark:border-slate-700 font-bold text-purple-800 dark:text-white uppercase text-xs tracking-wider">Pegawai & Pelulus</div>
+            <div class="mb-4"><label class="form-label">Pegawai (Auditor)</label><input id="namaPegawai" class="form-input uppercase" value="GOBALAN A/L VIRASINGGAM" oninput="updatePreview()"></div>
+            <div class="mb-4"><label class="form-label">Jawatan Pegawai</label><input id="jawatanPegawai" class="form-input" value="Penolong Pengarah Kastam" oninput="updatePreview()"></div>
+            <div class="mb-4"><label class="form-label">Pelulus (Pengarah)</label><input id="namaPelulus" class="form-input uppercase" value="NORHASHIKIN BINTI MD YUSOF" oninput="updatePreview()"></div>
+            <div class="mb-4"><label class="form-label">Jawatan Pelulus</label><input id="jawatanPelulus" class="form-input" value="Penolong Kanan Pengarah Kastam II" oninput="updatePreview()"></div>
+          </div>
+          <div class="input-card border-l-4 border-l-purple-500">
+             <div class="mb-4 pb-2 border-b border-purple-100 dark:border-slate-700 font-bold text-purple-800 dark:text-white uppercase text-xs tracking-wider">Nombor Minit</div>
+             <div class="grid grid-cols-3 gap-3 text-center">
+                <div><label class="form-label">Arahan</label><input type="number" id="m1" class="form-input text-center" value="1" oninput="updatePreview()"></div>
+                <div><label class="form-label">Mohon</label><input type="number" id="m2" class="form-input text-center" value="2" oninput="updatePreview()"></div>
+                <div><label class="form-label">Keputusan</label><input type="number" id="m3" class="form-input text-center" value="3" oninput="updatePreview()"></div>
+             </div>
+          </div>`,
+        renderPreview: (data) => {
+          const p1 = `<div class="a4-paper"><div class="absolute top-4 right-4 text-xs font-bold text-gray-300">ARAHAN</div><div class="text-center font-bold mb-6 text-sm uppercase">${data.noRujukan}</div><table class="table-layout"><tr><td style="width:55px"><div class="minit-circle">${data.m1}</div></td><td style="width:20px"></td><td><div class="font-bold mb-1">TUAN ${cleanName(data.namaPegawai)}</div><div>${data.jawatanPegawai}</div><div>Cawangan Audit Import & SST, Pulau Pinang.</div><div class="h-6"></div><p class="mb-4 text-justify">Entiti Perniagaan (EP) <span class="font-bold">${data.namaSyarikat}</span> adalah dirujuk.</p><div class="hanging-indent text-justify mb-4"><span class="num font-bold">2.</span>Sila jalankan audit verifikasi pematuhan (AViP) ke atas syarikat ini bagi mengesan sebarang ketidakpatuhan dan memungut semula duti/cukai yang terkurang bayar selaras dengan kehendak Akta Cukai Perkhidmatan 2018, Peraturan-peraturan dan syarat-syarat yang ditetapkan oleh jabatan.</div><div class="hanging-indent text-justify mb-6"><span class="num font-bold">3.</span>Laporan audit yang disediakan mestilah berpandukan PETUa 13. Fail dimajukan untuk tindakan puan seterusnya.</div><p class="mb-8">Sekian, terima kasih.</p><div class="mb-1">..................................................</div><div class="font-bold uppercase">${data.namaPelulus}</div><div>${data.jawatanPelulus}</div><div>Cawangan Audit Import & SST,</div><div>Bahagian Pematuhan, Pulau Pinang.</div><div class="font-bold uppercase mt-4">${getTarikhBM()}</div></td></tr></table></div>`;
+          const p2 = `<div class="a4-paper"><div class="absolute top-4 right-4 text-xs font-bold text-gray-300">PERMOHONAN</div><div class="text-center font-bold mb-6 text-sm uppercase">${data.noRujukan}</div><table class="table-layout"><tr><td style="width:55px"><div class="minit-circle">${data.m2}</div></td><td style="width:20px"></td><td><div class="font-bold mb-1">PUAN ${cleanName(data.namaPelulus)}</div><div>${data.jawatanPelulus}</div><div class="mb-4">Bahagian Pematuhan, Pulau Pinang.</div><p class="mb-4">Minit di Bil. ${parseInt(data.m2)-1} adalah dirujuk.</p><div class="hanging-indent text-justify mb-4"><span class="num font-bold">2.</span>Audit verifikasi pematuhan (AVIP) sedang dijalankan ke atas syarikat <span class="font-bold uppercase">${data.namaSyarikat}</span> beralamat di ${data.alamat}. Audit yang dijalankan meliputi tiga (2) tempoh bercukai dari <span class="font-bold">${data.tMula} - ${data.tTamat}.</span></div><div class="hanging-indent text-justify mb-6"><span class="num font-bold">3.</span>Pegawai audit ingin memohon daripada pihak puan agar tiada lawatan dijalankan ke atas premis memandangkan kesemua dokumen yang dipohon untuk proses auditan telah diberikan oleh pihak syarikat dengan baik dan lengkap dan syarikat memberikan kerjasama sepanjang auditan.</div><p class="mb-4">Fail dimajukan untuk arahan dan tindakan puan selanjutnya.</p><p class="mb-8">Sekian, terima kasih.</p><div class="mb-1">..................................................</div><div class="font-bold uppercase">${data.namaPegawai}</div><div>${data.jawatanPegawai}</div><div>Cawangan Audit Import & SST, Pulau Pinang.</div><div class="font-bold uppercase mt-4">${getTarikhBM()}</div></td></tr></table></div>`;
+          const p3 = `<div class="a4-paper"><div class="absolute top-4 right-4 text-xs font-bold text-gray-300">KEPUTUSAN</div><div class="text-center font-bold mb-6 text-sm uppercase">${data.noRujukan}</div><table class="table-layout"><tr><td style="width:55px"><div class="minit-circle">${data.m3}</div></td><td style="width:20px"></td><td><div class="font-bold mb-1">TUAN ${cleanName(data.namaPegawai)}</div><div>${data.jawatanPegawai}</div><div class="mb-6">Cawangan Audit Import & SST.</div><p class="mb-4">Minit di Bil. ${parseInt(data.m3)-1} dirujuk.</p><div class="hanging-indent text-justify mb-6"><span class="num font-bold">2.</span>Permohonan tiada lawatan audit dijalankan ke atas premis oleh pegawai audit adalah disokong.</div><p class="mb-4">Fail dimajukan untuk arahan dan tindakan puan selanjutnya.</p><p class="mb-8">Sekian, terima kasih.</p><div class="mb-1">..................................................</div><div class="font-bold uppercase">${data.namaPelulus}</div><div>${data.jawatanPelulus}</div><div>Cawangan Audit Import & SST,</div><div>Bahagian Pematuhan, Pulau Pinang.</div><div class="font-bold uppercase mt-4">${getTarikhBM()}</div></td></tr></table></div>`;
+          return p1 + p2 + p3;
+        }
+      }
+    };
+
+    let currentKey = 'bod';
+
+    function loadTemplate(key) {
+      currentKey = key;
+      document.getElementById('landingView').classList.add('hidden');
+      document.getElementById('editorView').classList.remove('hidden');
+      
+      const t = TEMPLATES[key];
+      const titleEl = document.getElementById('editorTitle');
+      titleEl.innerText = t.title;
+      
+      const container = document.getElementById('editorTitleContainer');
+      container.className = `px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-wide bg-${t.theme}-50 text-${t.theme}-700 border-${t.theme}-200 dark:bg-${t.theme}-900/30 dark:text-${t.theme}-300 dark:border-${t.theme}-800`;
+
+      document.getElementById('dynamicFormContainer').innerHTML = t.renderForm();
+      
+      loadProgress();
+      
+      document.querySelectorAll('.form-input, .form-select, .form-textarea').forEach(el => {
+         el.addEventListener('input', () => {
+            saveProgress();
+            updatePreview();
+         });
+      });
+
+      updatePreview();
+    }
+
+    function closeEditor() {
+      document.getElementById('editorView').classList.add('hidden');
+      document.getElementById('landingView').classList.remove('hidden');
+      renderHistory(); 
+    }
+
+    function updatePreview() {
+      const data = getFormData();
+      document.getElementById('dynamicPreviewContainer').innerHTML = TEMPLATES[currentKey].renderPreview(data);
+      fitPaper(); 
+    }
+
+    function filterTemplates() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      document.querySelectorAll('.template-card').forEach(card => {
+        card.style.display = (card.getAttribute('data-search')||'').includes(query) ? 'flex' : 'none';
+      });
+    }
+
+    function getFormData() {
+      const data = {};
+      document.querySelectorAll('.form-input, .form-select, .form-textarea').forEach(el => {
+        data[el.id] = el.value.trim() || el.placeholder;
+        if(['namaSyarikat','namaPegawai','namaPelulus'].includes(el.id)) data[el.id] = data[el.id].toUpperCase();
+      });
+      return data;
+    }
+
+    async function generateDocx() {
+      if(!window.docx) { 
+        alert("Sila tunggu perpustakaan dimuatkan atau semak sambungan internet anda."); 
+        return; 
+      }
+      const data = getFormData();
+      const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, BorderStyle, WidthType, ImageRun, AlignmentType, TabStopType } = window.docx;
+      const noBorder = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
+      const txt = (t, o={}) => new TextRun({ text: t, font: "Arial", size: 24, ...o });
+      const para = (c, o={}) => new Paragraph({ children: c, spacing: { after: 0 }, ...o });
+
+      function generateCircleBuffer(num) {
+        return new Promise(resolve => {
+          const c = document.getElementById('circleCanvas'), x = c.getContext('2d');
+          x.clearRect(0,0,120,120); x.fillStyle="#fff"; x.fillRect(0,0,120,120);
+          x.beginPath(); x.arc(60,60,50,0,2*Math.PI); x.lineWidth=4; x.strokeStyle='#000'; x.stroke();
+          x.font='bold 44px Arial'; x.fillStyle='#000'; x.textAlign='center'; x.textBaseline='middle'; x.fillText(num, 60, 64);
+          c.toBlob(async b => resolve(await b.arrayBuffer()), 'image/png');
+        });
+      }
+
+      const createRow = async (minit, content) => {
+        const img = await generateCircleBuffer(minit);
+        return new TableRow({
+          children: [
+            new TableCell({ width: { size: 850, type: WidthType.DXA }, verticalAlign: "top", borders: { top:noBorder,bottom:noBorder,left:noBorder,right:noBorder }, children: [ new Paragraph({ alignment: AlignmentType.CENTER, children: [ new ImageRun({ data: img, transformation: { width: 50, height: 50 }, type: "png" }) ] }) ] }),
+            new TableCell({ width: { size: 280, type: WidthType.DXA }, borders: { top:noBorder,bottom:noBorder,left:noBorder,right:noBorder }, children: [] }),
+            new TableCell({ width: { size: 7800, type: WidthType.DXA }, borders: { top:noBorder,bottom:noBorder,left:noBorder,right:noBorder }, children: content })
+          ]
+        });
+      };
+
+      let sections = [];
+      const commonMargin = { top: 1440, bottom: 1440, left: 1440, right: 1440 };
+
+      // --- CUSTOM TEMPLATE LOGIC ---
+      if (currentKey === 'custom') {
+         sections.push({
+           properties: { page: { margin: commonMargin } },
+           children: [
+             para([txt("Rujukan Kami: " + data.noRujukan)], { alignment: AlignmentType.RIGHT }),
+             para([txt("Tarikh: " + data.tarikhSurat)], { alignment: AlignmentType.RIGHT, spacing: { after: 400 } }),
+             
+             para([txt(data.kepada, {bold:true})], { spacing: { after: 300 } }),
+             para([txt("Tuan,")], { spacing: { after: 200 } }),
+             para([txt(data.tajuk, {bold:true, underline:{type:"single"}})], { alignment: AlignmentType.JUSTIFIED, spacing: { after: 300 } }),
+             
+             ...data.kandungan.split('\n\n').map(p => para([txt(p)], { alignment: AlignmentType.JUSTIFIED, spacing: { after: 200 } })),
+             
+             para([txt("Sekian, terima kasih.")], { spacing: { before: 200, after: 600 } }),
+             para([txt(`"MALAYSIA MADANI"`, {bold:true})]),
+             para([txt(`"BERKHIDMAT UNTUK NEGARA"`, {bold:true})], { spacing: { after: 400 } }),
+             para([txt("Saya yang menjalankan amanah,")], { spacing: { after: 800 } }),
+             para([txt(`(${data.namaPegawai})`, {bold:true})]),
+             para([txt(data.jawatanPegawai)])
+           ]
+         });
+      } 
+      // --- EXISTING TEMPLATES ---
+      else if (currentKey === 'minit_ku') {
+        const row = await createRow(data.minitNo, [
+           para([txt("TUAN " + cleanName(data.namaPegawai), {bold:true})]), 
+           para([txt(data.jawatanPegawai)]), 
+           para([txt("Cawangan Audit Import & SST, Pulau Pinang.")], {spacing:{after:400}}),
+           para([txt(`Entiti Perniagaan (EP) `), txt(data.namaSyarikat, {bold:true}), txt(" adalah dirujuk.")], {spacing:{after:200}}),
+           // FIX 2: Synchronize text perfectly with preview
+           para([txt("2.\t", {bold:true}), txt(`Sila jalankan audit verifikasi pematuhan (AViP) ke atas syarikat ini bagi mengesan sebarang ketidakpatuhan dan memungut semula duti/cukai yang terkurang bayar selaras dengan kehendak `), txt(data.akta, {bold:true}), txt(` serta Peraturan-peraturan dan syarat-syarat yang ditetapkan oleh jabatan.`)], {indent:{left:550,hanging:550}, tabStops:[{type:TabStopType.LEFT, position:550}], spacing:{after:200}, alignment:AlignmentType.JUSTIFIED}),
+           para([txt("3.\t", {bold:true}), txt("Laporan audit yang disediakan mestilah berpandukan PETUa 13. Fail dimajukan untuk tindakan puan seterusnya.")], {indent:{left:550,hanging:550}, tabStops:[{type:TabStopType.LEFT, position:550}], spacing:{after:200}, alignment:AlignmentType.JUSTIFIED}),
+           para([txt("Sekian, terima kasih.")], {spacing:{after:600}}),
+           para([txt("..................................................")]),
+           para([txt(data.namaPelulus, {bold:true})]),
+           para([txt(data.jawatanPelulus)]),
+           para([txt("Cawangan Audit Import & SST,")]),
+           para([txt("Bahagian Pematuhan, Pulau Pinang.")]),
+           para([txt(getTarikhBM(), {bold:true})])
+        ]);
+        sections.push({ properties: { page: { margin: commonMargin } }, children: [ para([txt(data.noRujukan, {bold:true})], {alignment:AlignmentType.CENTER, spacing:{after:400}}), new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [row] }) ] });
+      } else if (currentKey === 'bod') {
+        const row = await createRow(data.minitNo, [
+          para([txt("Urus setia", {bold:true})]), para([txt("Cawangan Audit Import & SST")]), para([txt("JKDM Pulau Pinang")], {spacing:{after:400}}),
+          para([txt(`Minit bilangan (${parseInt(data.minitNo)-1 || 1}) dirujuk.`)], {spacing:{after:200}}),
+          para([txt("2.\t", {bold:true}), txt(`BOD secara sukarela telah dikeluarkan ke atas audit `), txt(data.namaSyarikat, {bold:true}), txt(` di bawah peruntukan `), txt(data.akta, {bold:true}), txt(". Lampiran SMK ETOS disertakan untuk tindakan selanjutnya.")], {indent:{left:550,hanging:550}, tabStops:[{type:TabStopType.LEFT, position:550}], spacing:{after:200}, alignment:AlignmentType.JUSTIFIED}),
+          para([txt("3.\t", {bold:true}), txt("Sehubungan dengan itu, dimohon agar pihak tuan/puan untuk mengambil tindakan selanjutnya dalam pengeluaran BOD tersebut. Fail dimajukan untuk tindakan selanjutnya.")], {indent:{left:550,hanging:550}, tabStops:[{type:TabStopType.LEFT, position:550}], spacing:{after:200}, alignment:AlignmentType.JUSTIFIED}),
+          para([txt("Sekian, terima kasih.")], {spacing:{after:600}}),
+          para([txt("(GOBALAN A/L VIRASINGGAM)")]), para([txt("PENOLONG PENGARAH KASTAM")]), para([txt("Cawangan Audit Import & SST")]), para([txt("JKDM Pulau Pinang")], {spacing:{after:200}}), para([txt(getTarikhBM(), {bold:true})])
+        ]);
+        sections.push({ properties: { page: { margin: commonMargin } }, children: [ para([txt(data.noRujukan, {bold:true})], {alignment:AlignmentType.CENTER, spacing:{after:400}}), new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [row] }) ] });
+      } else if (currentKey === 'remisi') {
+        const row = await createRow(data.minitNo, [
+           para([txt(data.namaPegawai, {bold:true})]), para([txt(data.jawatanPegawai)]), para([txt("Cawangan Audit Import & SST, Pulau Pinang")], {spacing:{after:400}}),
+           para([txt(`Syarikat `), txt(data.namaSyarikat, {bold:true}), txt(` telah membuat pindaan penyata SST-02 melalui `), txt(`Supplementary Tax Return`, {italics:true}), txt(` dan bayaran pada ${data.tarikhBayaran} melibatkan ${data.bilPenyata} penyata dalam tempoh ${data.tempohPenyata} dengan jumlah cukai perkhidmatan sebanyak `), txt(formatRM(data.jumCukai), {bold:true}), txt(`. Bayaran selesai tanpa melibatkan penalti sebanyak `), txt(formatRM(data.jumPenalti), {bold:true}), txt(`.`)], {spacing:{after:200}, alignment:AlignmentType.JUSTIFIED}),
+           para([txt("2.\t", {bold:true}), txt("Berdasarkan Surat Pekeliling Bahagian Pengurusan Pematuhan Bil.1/2024: Kaedah Pelaksanaan Insentif Audit Verifikasi Pematuhan (AViP) bertarikh 21.05.2024, EP mematuhi Para 2.1.3, 2.1.4 dan 2.23 seperti berikut:")], {indent:{left:550,hanging:550}, tabStops:[{type:TabStopType.LEFT, position:550}], spacing:{after:100}, alignment:AlignmentType.JUSTIFIED}),
+           
+           // Sub Paras with Indentation
+           para([txt(`Para 2.1.3:`, {bold:true}), txt(` EP telah membuat pindaan ke atas penyata/menghantar penyata supplementary mengikut amaun yang telah dinyatakan di dalam Surat Layak VD dan`)], {indent:{left:1100}, spacing:{after:100}, alignment:AlignmentType.JUSTIFIED}),
+           para([txt(`Para 2.1.4:`, {bold:true}), txt(` EP telah membuat pembayaran penuh cukai seperti di dalam Surat Layak VD dalam tempoh 6 bulan atau 12 bulan`)], {indent:{left:1100}, spacing:{after:100}, alignment:AlignmentType.JUSTIFIED}),
+           para([txt(`Para 2.23:`, {bold:true}), txt(` Kategori 1: Remisi penalti 100% diberikan kepada EP yang membuat pembayaran penuh cukai dalam tempoh 6 bulan dari tarikh pindaan penyata/penghantaran penyata supplementary`)], {indent:{left:1100}, spacing:{after:200}, alignment:AlignmentType.JUSTIFIED}),
+
+           para([txt("3.\t", {bold:true}), txt("Syarikat telah memenuhi semua kriteria dan disyorkan layak mendapat insentif remisi penalti 100%.")], {indent:{left:550,hanging:550}, tabStops:[{type:TabStopType.LEFT, position:550}], spacing:{after:200}, alignment:AlignmentType.JUSTIFIED}),
+           para([txt("4.\t", {bold:true}), txt("Dimajukan Borang BRP 1 dan dokumen sokongan berkaitan untuk arahan tuan selanjutnya.")], {indent:{left:550,hanging:550}, tabStops:[{type:TabStopType.LEFT, position:550}], spacing:{after:400}, alignment:AlignmentType.JUSTIFIED}),
+           para([txt("Sekian, terima kasih.")], {spacing:{after:600}}), 
+           para([txt("..................................................")]),
+           para([txt("( GOBALAN A/L VIRASINGGAM )", {bold:true})]), 
+           para([txt("Penolong Pengarah Kastam")]),
+           para([txt("Cawangan Audit Import & SST")]),
+           para([txt("Bahagian Pematuhan")]),
+           para([txt("Pulau Pinang")]),
+           para([txt(getTarikhBM(), {bold:true})])
+        ]);
+        sections.push({ children: [ para([txt(data.noRujukan, {bold:true})], {alignment:AlignmentType.CENTER, spacing:{after:400}}), new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [row] }) ] });
+      } else if (currentKey === '3serangkai') {
+        // Minit 1
+        const r1 = await createRow(data.m1, [
+           para([txt("TUAN " + cleanName(data.namaPegawai), {bold:true})]), para([txt(data.jawatanPegawai)]), para([txt("Cawangan Audit Import & SST, Pulau Pinang.")], {spacing:{after:400}}),
+           para([txt(`Entiti Perniagaan (EP) `), txt(data.namaSyarikat, {bold:true}), txt(" adalah dirujuk.")], {spacing:{after:200}}),
+           para([txt("2.\t", {bold:true}), txt("Sila jalankan audit verifikasi pematuhan (AViP) ke atas syarikat ini bagi mengesan sebarang ketidakpatuhan dan memungut semula duti/cukai yang terkurang bayar selaras dengan kehendak Akta Cukai Perkhidmatan 2018, Peraturan-peraturan dan syarat-syarat yang ditetapkan oleh jabatan.")], {indent:{left:550,hanging:550}, tabStops:[{type:TabStopType.LEFT, position:550}], spacing:{after:200}, alignment:AlignmentType.JUSTIFIED}),
+           para([txt("3.\t", {bold:true}), txt("Laporan audit yang disediakan mestilah berpandukan PETUa 13. Fail dimajukan untuk tindakan puan seterusnya.")], {indent:{left:550,hanging:550}, tabStops:[{type:TabStopType.LEFT, position:550}], spacing:{after:200}, alignment:AlignmentType.JUSTIFIED}),
+           para([txt("Sekian, terima kasih.")], {spacing:{after:600}}), para([txt("..................................................")]), para([txt(data.namaPelulus, {bold:true})]), para([txt(data.jawatanPelulus)]), para([txt("Cawangan Audit Import & SST,")]), para([txt("Bahagian Pematuhan, Pulau Pinang.")]), para([txt(getTarikhBM(), {bold:true})])
+        ]);
+        sections.push({ children: [ para([txt(data.noRujukan, {bold:true})], {alignment:AlignmentType.CENTER, spacing:{after:400}}), new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [r1] }) ] });
+        
+        // Minit 2
+        const r2 = await createRow(data.m2, [
+           para([txt("PUAN " + cleanName(data.namaPelulus), {bold:true})]), para([txt(data.jawatanPelulus)]), para([txt("Bahagian Pematuhan, Pulau Pinang.")], {spacing:{after:200}}),
+           para([txt(`Minit di Bil. ${parseInt(data.m2)-1} adalah dirujuk.`)], {spacing:{after:200}}),
+           para([txt("2.\t", {bold:true}), txt(`Audit verifikasi pematuhan (AVIP) sedang dijalankan ke atas syarikat `), txt(data.namaSyarikat, {bold:true}), txt(` beralamat di ${data.alamat}. Audit yang dijalankan meliputi tiga (2) tempoh bercukai dari `), txt(`${data.tMula} - ${data.tTamat}.`, {bold:true})], {indent:{left:550,hanging:550}, tabStops:[{type:TabStopType.LEFT, position:550}], spacing:{after:200}, alignment:AlignmentType.JUSTIFIED}),
+           para([txt("3.\t", {bold:true}), txt("Pegawai audit ingin memohon daripada pihak puan agar tiada lawatan dijalankan ke atas premis memandangkan kesemua dokumen yang dipohon untuk proses auditan telah diberikan oleh pihak syarikat dengan baik dan lengkap dan syarikat memberikan kerjasama sepanjang auditan.")], {indent:{left:550,hanging:550}, tabStops:[{type:TabStopType.LEFT, position:550}], spacing:{after:200}, alignment:AlignmentType.JUSTIFIED}),
+           para([txt("Fail dimajukan untuk arahan dan tindakan puan selanjutnya.")], {spacing:{after:200}}),
+           para([txt("Sekian, terima kasih.")], {spacing:{after:600}}),
+           para([txt("..................................................")]),
+           para([txt(data.namaPegawai, {bold:true})]), para([txt(data.jawatanPegawai)]),
+           para([txt("Cawangan Audit Import & SST, Pulau Pinang.")]), para([txt(getTarikhBM(), {bold:true})])
+        ]);
+        sections.push({ children: [ para([txt(data.noRujukan, {bold:true})], {alignment:AlignmentType.CENTER, spacing:{after:400}, pageBreakBefore:true}), new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [r2] }) ] });
+        
+        // Minit 3
+        const r3 = await createRow(data.m3, [
+           para([txt("TUAN " + cleanName(data.namaPegawai), {bold:true})]), para([txt(data.jawatanPegawai)]), para([txt("Cawangan Audit Import & SST, Pulau Pinang.")], {spacing:{after:400}}),
+           para([txt(`Minit di Bil. ${parseInt(data.m3)-1} dirujuk.`)], {spacing:{after:200}}),
+           para([txt("2.\t", {bold:true}), txt("Permohonan tiada lawatan audit dijalankan ke atas premis oleh pegawai audit adalah disokong.")], {indent:{left:550,hanging:550}, tabStops:[{type:TabStopType.LEFT, position:550}], spacing:{after:200}, alignment:AlignmentType.JUSTIFIED}),
+           para([txt("Fail dimajukan untuk arahan dan tindakan puan selanjutnya.")], {spacing:{after:200}}),
+           para([txt("Sekian, terima kasih.")], {spacing:{after:600}}), 
+           para([txt("..................................................")]),
+           para([txt(data.namaPelulus, {bold:true})]), para([txt(data.jawatanPelulus)]),
+           para([txt("Cawangan Audit Import & SST,")]), para([txt("Bahagian Pematuhan, Pulau Pinang.")]), para([txt(getTarikhBM(), {bold:true})])
+        ]);
+        sections.push({ children: [ para([txt(data.noRujukan, {bold:true})], {alignment:AlignmentType.CENTER, spacing:{after:400}, pageBreakBefore:true}), new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [r3] }) ] });
+      }
+
+      const doc = new Document({ sections: sections });
+      const blob = await Packer.toBlob(doc);
+      
+      // LOGIK PENAMAAN FAIL AUTOMATIK
+      let cleanCompanyName = "";
+      if (data.namaSyarikat) {
+          cleanCompanyName = "_" + data.namaSyarikat.replace(/[\/\\:*?"<>|]/g, "_");
+      } else if (currentKey === 'custom') {
+           cleanCompanyName = "_" + new Date().toISOString().slice(0,10);
+      }
+
+      let fileName = `Dokumen.docx`;
+      
+      switch(currentKey) {
+        case 'minit_ku': 
+            fileName = `Minit Arahan KU${cleanCompanyName}.docx`; 
+            break;
+        case 'bod': 
+            fileName = `Minit Notis BOD_CDN${cleanCompanyName}.docx`; 
+            break;
+        case 'remisi': 
+            fileName = `Minit Remisi Penalti_ABT${cleanCompanyName}.docx`; 
+            break;
+        case '3serangkai': 
+            fileName = `Minit Tidak Lawat Premis${cleanCompanyName}.docx`; 
+            break;
+        default:
+             fileName = `Dokumen_Rasmi${cleanCompanyName}.docx`;
+      }
+
+      // Feature: Save As with Fallback
+      let saved = false;
+      if (window.showSaveFilePicker) {
+         try {
+           const handle = await window.showSaveFilePicker({
+             suggestedName: fileName,
+             types: [{
+               description: 'Microsoft Word Document',
+               accept: { 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'] },
+             }],
+           });
+           const writable = await handle.createWritable();
+           await writable.write(blob);
+           await writable.close();
+           saved = true;
+         } catch (err) {
+           if (err.name !== 'AbortError') {
+             console.warn("Save As failed (likely iframe restriction), falling back to download.", err);
+           } else {
+             saved = true;
+           }
+         }
+      }
+
+      if (!saved) {
+         saveAs(blob, fileName);
+      }
+    }
+  </script>
+</body>
+</html>
