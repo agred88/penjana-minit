@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Penjana Surat Rasmi | Versi 2.7 (Auto Filename)</title>
+  <title>Penjana Minit Rasmi | Versi 2.9 (Layout Kemas)</title>
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -193,14 +193,14 @@
         </svg>
       </div>
       <div>
-        <h1 class="text-lg font-bold text-slate-800 dark:text-white leading-tight">Sistem Penjana Surat</h1>
-        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">JKDM Pulau Pinang</p>
+        <h1 class="text-lg font-bold text-slate-800 dark:text-white leading-tight">Sistem Penjana Minit</h1>
+        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">Bahagian Pematuhan JKDM Pulau Pinang</p>
       </div>
     </div>
     
     <div class="flex items-center gap-3">
       <span class="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-100 dark:border-blue-800">
-        Versi 2.7 Pro
+        Versi 2.9 Pro
       </span>
       <button onclick="toggleTheme()" class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors focus:outline-none" title="Tukar Tema">
         <svg id="sunIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
@@ -212,14 +212,14 @@
   <!-- VIEW 1: LANDING PAGE -->
   <div id="landingView" class="min-h-screen flex flex-col items-center pt-24 px-4 pb-20 relative">
     
-    <!-- Logo Kastam Di Muka Depan (Atas) -->
-    <div class="mb-6 flex flex-col items-center animate-fade-in-down">
-      <img src="https://i.imgur.com/94TlEvV.png" class="h-28 w-auto drop-shadow-md mb-4 hover:scale-105 transition-transform duration-500" alt="Logo Kastam Diraja Malaysia">
+    <!-- Logo Kastam Di Muka Depan (Atas) - Adjusted Spacing -->
+    <div class="mb-2 flex flex-col items-center animate-fade-in-down">
+      <img src="https://i.imgur.com/94TlEvV.png" class="h-28 w-auto drop-shadow-md hover:scale-105 transition-transform duration-500" alt="Logo Kastam Diraja Malaysia">
     </div>
 
     <div class="text-center max-w-2xl mx-auto mb-10">
       <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-3 tracking-tight">Pilih Templat Dokumen</h2>
-      <p class="text-slate-500 dark:text-slate-400 text-base">Pilih jenis surat rasmi untuk memulakan proses penjanaan dokumen.</p>
+      <p class="text-slate-500 dark:text-slate-400 text-base">Pilih jenis minit rasmi untuk memulakan proses penjanaan dokumen.</p>
     </div>
 
     <div class="w-full max-w-6xl mb-12">
@@ -247,7 +247,7 @@
           <span class="badge red">Bahasa</span>
           <div class="mt-4 mb-auto">
             <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 group-hover:text-red-600 transition-colors">Minit Notis BOD</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Surat rasmi pengeluaran BOD di bawah Akta Cukai Jualan & Perkhidmatan 2018.</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Minit rasmi pengeluaran BOD di bawah Akta Cukai Jualan & Perkhidmatan 2018.</p>
           </div>
           <button class="mt-6 w-full py-2.5 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-sm font-semibold rounded-lg group-hover:bg-red-50 dark:group-hover:bg-red-900/20 group-hover:text-red-700 transition-colors">Pilih Templat</button>
         </div>
@@ -277,7 +277,7 @@
           <span class="badge gray">Tersuai</span>
           <div class="mt-4 mb-auto">
             <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 group-hover:text-slate-600 transition-colors">Templat Kosong</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Bina surat anda sendiri dengan tajuk, kandungan, dan tandatangan tersuai.</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Bina minit anda sendiri dengan tajuk, kandungan, dan tandatangan tersuai.</p>
           </div>
           <button class="mt-6 w-full py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-semibold rounded-lg group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors">Bina Sendiri</button>
         </div>
@@ -878,10 +878,12 @@
       const doc = new Document({ sections: sections });
       const blob = await Packer.toBlob(doc);
       
-      // LOGIK PENAMAAN FAIL AUTOMATIK
+      // LOGIK PENAMAAN FAIL AUTOMATIK (Disesuaikan dengan permintaan v2.8)
       let cleanCompanyName = "";
       if (data.namaSyarikat) {
-          cleanCompanyName = "_" + data.namaSyarikat.replace(/[\/\\:*?"<>|]/g, "_");
+          // Buang aksara larangan filename dan ganti dengan underscore
+          // Format: _NAMA SYARIKAT
+          cleanCompanyName = "_" + data.namaSyarikat.replace(/[\/\\:*?"<>|]/g, "_").toUpperCase();
       } else if (currentKey === 'custom') {
            cleanCompanyName = "_" + new Date().toISOString().slice(0,10);
       }
@@ -890,15 +892,19 @@
       
       switch(currentKey) {
         case 'minit_ku': 
+            // 1. Minit Arahan KU_<nama syarikat>
             fileName = `Minit Arahan KU${cleanCompanyName}.docx`; 
             break;
         case 'bod': 
+            // 2. Minit Notis BOD_CDN_<nama syarikat>
             fileName = `Minit Notis BOD_CDN${cleanCompanyName}.docx`; 
             break;
         case 'remisi': 
+            // 3. Minit Remisi Penalti_ABT_<nama syarikat> (Saya betulkan ejaan Remis -> Remisi)
             fileName = `Minit Remisi Penalti_ABT${cleanCompanyName}.docx`; 
             break;
         case '3serangkai': 
+            // 4. Minit Tidak Lawat Premis_<nama syarikat>
             fileName = `Minit Tidak Lawat Premis${cleanCompanyName}.docx`; 
             break;
         default:
