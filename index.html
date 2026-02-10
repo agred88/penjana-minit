@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Penjana Minit Rasmi | Versi 2.9 (Layout Kemas)</title>
+  <title>Penjana Minit Rasmi | Versi 2.10 (Sticky Header)</title>
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -200,7 +200,7 @@
     
     <div class="flex items-center gap-3">
       <span class="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-100 dark:border-blue-800">
-        Versi 2.9 Pro
+        Versi 2.10 Pro
       </span>
       <button onclick="toggleTheme()" class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors focus:outline-none" title="Tukar Tema">
         <svg id="sunIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
@@ -210,25 +210,29 @@
   </nav>
 
   <!-- VIEW 1: LANDING PAGE -->
-  <div id="landingView" class="min-h-screen flex flex-col items-center pt-24 px-4 pb-20 relative">
+  <div id="landingView" class="min-h-screen flex flex-col items-center pt-16 px-4 pb-20 relative">
     
-    <!-- Logo Kastam Di Muka Depan (Atas) - Adjusted Spacing -->
-    <div class="mb-2 flex flex-col items-center animate-fade-in-down">
-      <img src="https://i.imgur.com/94TlEvV.png" class="h-28 w-auto drop-shadow-md hover:scale-105 transition-transform duration-500" alt="Logo Kastam Diraja Malaysia">
+    <!-- STICKY HEADER WRAPPER -->
+    <div class="sticky top-16 z-40 w-full bg-[#f8fafc]/95 dark:bg-[#0f172a]/95 backdrop-blur-sm border-b border-slate-200/50 dark:border-slate-800/50 pt-8 pb-6 flex flex-col items-center shadow-sm transition-colors duration-300">
+        <!-- Logo Kastam -->
+        <div class="mb-2 flex flex-col items-center animate-fade-in-down">
+          <img src="https://i.imgur.com/94TlEvV.png" class="h-24 w-auto drop-shadow-md hover:scale-105 transition-transform duration-500" alt="Logo Kastam Diraja Malaysia">
+        </div>
+
+        <div class="text-center max-w-2xl mx-auto mb-4">
+          <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-2 tracking-tight">Pilih Templat Dokumen</h2>
+          <p class="text-slate-500 dark:text-slate-400 text-sm">Pilih jenis minit rasmi untuk memulakan proses penjanaan dokumen.</p>
+        </div>
+
+        <!-- Search Bar in Sticky Header -->
+        <div class="relative max-w-md w-full mx-auto px-4">
+            <input type="text" id="searchInput" placeholder="Cari templat..." class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded-xl px-5 py-3 pl-11 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all" onkeyup="filterTemplates()">
+            <svg class="w-5 h-5 text-slate-400 absolute left-8 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
     </div>
 
-    <div class="text-center max-w-2xl mx-auto mb-10">
-      <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-3 tracking-tight">Pilih Templat Dokumen</h2>
-      <p class="text-slate-500 dark:text-slate-400 text-base">Pilih jenis minit rasmi untuk memulakan proses penjanaan dokumen.</p>
-    </div>
-
-    <div class="w-full max-w-6xl mb-12">
-      <!-- Search Bar -->
-      <div class="relative max-w-md mx-auto mb-10">
-        <input type="text" id="searchInput" placeholder="Cari templat..." class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded-xl px-5 py-3.5 pl-11 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all" onkeyup="filterTemplates()">
-        <svg class="w-5 h-5 text-slate-400 absolute left-4 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-      </div>
-
+    <!-- SCROLLABLE CONTENT -->
+    <div class="w-full max-w-6xl mb-12 mt-8">
       <!-- Grid Cards -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         
@@ -296,7 +300,7 @@
     </div>
 
     <!-- Ayat Hak Milik Di Muka Depan (Bawah) -->
-    <div class="fixed bottom-0 w-full bg-white/90 backdrop-blur border-t border-slate-200 dark:bg-slate-900/90 dark:border-slate-800 py-3 text-center z-40">
+    <div class="fixed bottom-0 w-full bg-white/90 backdrop-blur border-t border-slate-200 dark:bg-slate-900/90 dark:border-slate-800 py-3 text-center z-50">
       <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
         Hak milik Gobalan Virasinggam Bahagian Pematuhan JKDM Pulau Pinang 2026
       </p>
@@ -849,7 +853,7 @@
         
         // Minit 2
         const r2 = await createRow(data.m2, [
-           para([txt("PUAN " + cleanName(data.namaPelulus), {bold:true})]), para([txt(data.jawatanPelulus)]), para([txt("Bahagian Pematuhan, Pulau Pinang.")], {spacing:{after:200}}),
+           para([txt("PUAN " + cleanName(data.namaPelulus), {bold:true})]), para([txt(data.jawatanPegawai)]), para([txt("Bahagian Pematuhan, Pulau Pinang.")], {spacing:{after:200}}),
            para([txt(`Minit di Bil. ${parseInt(data.m2)-1} adalah dirujuk.`)], {spacing:{after:200}}),
            para([txt("2.\t", {bold:true}), txt(`Audit verifikasi pematuhan (AVIP) sedang dijalankan ke atas syarikat `), txt(data.namaSyarikat, {bold:true}), txt(` beralamat di ${data.alamat}. Audit yang dijalankan meliputi tiga (2) tempoh bercukai dari `), txt(`${data.tMula} - ${data.tTamat}.`, {bold:true})], {indent:{left:550,hanging:550}, tabStops:[{type:TabStopType.LEFT, position:550}], spacing:{after:200}, alignment:AlignmentType.JUSTIFIED}),
            para([txt("3.\t", {bold:true}), txt("Pegawai audit ingin memohon daripada pihak puan agar tiada lawatan dijalankan ke atas premis memandangkan kesemua dokumen yang dipohon untuk proses auditan telah diberikan oleh pihak syarikat dengan baik dan lengkap dan syarikat memberikan kerjasama sepanjang auditan.")], {indent:{left:550,hanging:550}, tabStops:[{type:TabStopType.LEFT, position:550}], spacing:{after:200}, alignment:AlignmentType.JUSTIFIED}),
@@ -877,39 +881,10 @@
 
       const doc = new Document({ sections: sections });
       const blob = await Packer.toBlob(doc);
-      
-      // LOGIK PENAMAAN FAIL AUTOMATIK (Disesuaikan dengan permintaan v2.8)
-      let cleanCompanyName = "";
-      if (data.namaSyarikat) {
-          // Buang aksara larangan filename dan ganti dengan underscore
-          // Format: _NAMA SYARIKAT
-          cleanCompanyName = "_" + data.namaSyarikat.replace(/[\/\\:*?"<>|]/g, "_").toUpperCase();
-      } else if (currentKey === 'custom') {
-           cleanCompanyName = "_" + new Date().toISOString().slice(0,10);
-      }
+      const fileName = `Dokumen_${currentKey}.docx`;
 
-      let fileName = `Dokumen.docx`;
-      
-      switch(currentKey) {
-        case 'minit_ku': 
-            // 1. Minit Arahan KU_<nama syarikat>
-            fileName = `Minit Arahan KU${cleanCompanyName}.docx`; 
-            break;
-        case 'bod': 
-            // 2. Minit Notis BOD_CDN_<nama syarikat>
-            fileName = `Minit Notis BOD_CDN${cleanCompanyName}.docx`; 
-            break;
-        case 'remisi': 
-            // 3. Minit Remisi Penalti_ABT_<nama syarikat> (Saya betulkan ejaan Remis -> Remisi)
-            fileName = `Minit Remisi Penalti_ABT${cleanCompanyName}.docx`; 
-            break;
-        case '3serangkai': 
-            // 4. Minit Tidak Lawat Premis_<nama syarikat>
-            fileName = `Minit Tidak Lawat Premis${cleanCompanyName}.docx`; 
-            break;
-        default:
-             fileName = `Dokumen_Rasmi${cleanCompanyName}.docx`;
-      }
+      // Feature: Save to History
+      addToHistory(data.noRujukan);
 
       // Feature: Save As with Fallback
       let saved = false;
